@@ -8,10 +8,7 @@ services:
       - .:/code
     environment:
       FLASK_ENV: development
-    depends_on:
-      - mongohost  # указываем, что web-сервис должен подождать запуска MongoDB
-
   mongohost:
-    image: "mongo:latest"  # используем официальный образ MongoDB
+    image: "mongo:latest"
     ports:
       - "27017:27017"
