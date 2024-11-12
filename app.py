@@ -1,29 +1,46 @@
 import time
+import redis
+import psycopg2
 from flask import Flask, request
 from datetime import datetime
-from pymongo import MongoClient
 
 app = Flask(__name__)
+cache = redis.Redis(host='redishost', port=6379)
 
-# Подключение к MongoDB
-client = MongoClient("mongodb://mongohost:27017/")
-db = client["flaskdb"]
-collection = db["requests"]
+# Подключение к PostgreSQL
+def get_db_connection():
+    conn = psycopg2.connect(
+        host='postgresqlhost',
+        database='counterdb',
+        user='postgres',
+        password='password'
+    )
+    return conn
+
+def get_hit_count():
+    retries = 5
+    while True:
+        try:
+            return cache.incr('hits')
+        except redis.exceptions.ConnectionError as exc:
+            if retries == 0:
+                raise exc
+            retries -= 1
+            time.sleep(0.5)
 
 @app.route('/')
 def hello():
-    # Счетчик запросов
-    count = collection.count_documents({})
-    count += 1
-
-    # Данные о клиенте и времени
-    request_data = {
-        "count": count,
-        "datetime": datetime.now().strftime("%d/%b/%Y %H:%M:%S"),
-        "client_info": request.headers.get("User-Agent")
-    }
+    count = get_hit_count()
     
-    # Сохранение данных запроса
-    collection.insert_one(request_data)
+    # Сохранение информации о запросе в PostgreSQL
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT INTO requests (datetime, client_info)
+        VALUES (%s, %s)
+    ''', (datetime.now(), request.headers.get('User-Agent')))
+    conn.commit()
+    cur.close()
+    conn.close()
     
-    return 'Hello World! I have been seen {} times.\n'.format(count)
+    return f'Hello World! I have been seen {count} times.\n'

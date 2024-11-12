@@ -91,3 +91,14 @@ services:
 Данные запроса сохраняются в MongoDB.
 ![alt text](image-1.png)
 ![alt text](image-2.png)
+
+Чтобы просмотреть данные в теблице нужно сделать несколько шагов.
+1. Запустите контейнер
+``` docker-compose up ```
+2. Открыть ещё один терминал и в нем запустить команды
+```
+docker exec -it flask_docker-postgresqlhost-1 psql -U postgres
+\c counterdb
+SELECT * FROM requests;
+```
+![alt text](image-3.png)

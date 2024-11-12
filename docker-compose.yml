@@ -3,12 +3,24 @@ services:
   web:
     build: .
     ports:
-      - "5050:5050"
+      - "5000:5000"
     volumes:
       - .:/code
     environment:
       FLASK_ENV: development
-  mongohost:
-    image: "mongo:latest"
-    ports:
-      - "27017:27017"
+    depends_on:
+      - redishost
+      - postgresqlhost
+
+  redishost:
+    image: "redis:alpine"
+    hostname: redishost
+
+  postgresqlhost:
+    image: "postgres:alpine"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    hostname: postgresqlhost
